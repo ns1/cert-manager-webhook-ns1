@@ -1,0 +1,6 @@
+{
+    "apiKey": "Your NS1 API KEY",
+    "endpoint": "https://api.nsone.net/v1/",
+    "ignoreSSL": false,
+    "ttl": 600
+}

@@ -14,7 +14,7 @@ build:
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
 	helm template \
-	    --name example-webhook \
-        --set image.repository=$(IMAGE_NAME) \
-        --set image.tag=$(IMAGE_TAG) \
-        deploy/example-webhook > "$(OUT)/rendered-manifest.yaml"
+		--name ns1-webhook \
+		--set image.repository=$(IMAGE_NAME) \
+		--set image.tag=$(IMAGE_TAG) \
+		deploy/ns1-webhook > "$(OUT)/rendered-manifest.yaml"

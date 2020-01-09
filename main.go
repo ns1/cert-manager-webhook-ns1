@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	//"k8s.io/client-go/kubernetes"
@@ -11,6 +14,10 @@ import (
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
+	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
+
+	ns1API "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1DNS "gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
@@ -20,21 +27,20 @@ func main() {
 		panic("GROUP_NAME must be specified")
 	}
 
-	// This will register our custom DNS provider with the webhook serving
+	// This will register our NS1 DNS provider with the webhook serving
 	// library, making it available as an API under the provided GroupName.
 	// You can register multiple DNS provider implementations with a single
 	// webhook, where the Name() method will be used to disambiguate between
 	// the different implementations.
 	cmd.RunWebhookServer(GroupName,
-		&customDNSProviderSolver{},
+		&ns1DNSProviderSolver{},
 	)
 }
 
-// customDNSProviderSolver implements the provider-specific logic needed to
-// 'present' an ACME challenge TXT record for your own DNS provider.
-// To do so, it must implement the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
-// interface.
-type customDNSProviderSolver struct {
+// ns1DNSProviderSolver implements the logic needed to 'present' an ACME
+// challenge TXT record. To do so, it implements the
+// `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver` interface.
+type ns1DNSProviderSolver struct {
 	// If a Kubernetes 'clientset' is needed, you must:
 	// 1. uncomment the additional `client` field in this structure below
 	// 2. uncomment the "k8s.io/client-go/kubernetes" import at the top of the file
@@ -42,9 +48,11 @@ type customDNSProviderSolver struct {
 	// 4. ensure your webhook's service account has the required RBAC role
 	//    assigned to it for interacting with the Kubernetes APIs you need.
 	//client kubernetes.Clientset
+
+	client *ns1API.Client
 }
 
-// customDNSProviderConfig is a structure that is used to decode into when
+// ns1DNSProviderConfig is a structure that is used to decode into when
 // solving a DNS01 challenge.
 // This information is provided by cert-manager, and may be a reference to
 // additional configuration that's needed to solve the challenge for this
@@ -58,14 +66,17 @@ type customDNSProviderSolver struct {
 // You should not include sensitive information here. If credentials need to
 // be used by your provider here, you should reference a Kubernetes Secret
 // resource and fetch these credentials using a Kubernetes clientset.
-type customDNSProviderConfig struct {
-	// Change the two fields below according to the format of the configuration
-	// to be decoded.
+type ns1DNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
 	//Email           string `json:"email"`
 	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
+
+	APIKey    string `json:"apiKey"`
+	Endpoint  string `json:"endpoint"`
+	IgnoreSSL bool   `json:"ignoreSSL"`
+	TTL       int    `json:"ttl"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -73,9 +84,8 @@ type customDNSProviderConfig struct {
 // This should be unique **within the group name**, i.e. you can have two
 // solvers configured with the same Name() **so long as they do not co-exist
 // within a single webhook deployment**.
-// For example, `cloudflare` may be used as the name of a solver.
-func (c *customDNSProviderSolver) Name() string {
-	return "my-custom-solver"
+func (c *ns1DNSProviderSolver) Name() string {
+	return "ns1"
 }
 
 // Present is responsible for actually presenting the DNS record with the
@@ -83,17 +93,19 @@ func (c *customDNSProviderSolver) Name() string {
 // This method should tolerate being called multiple times with the same value.
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
-func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
+func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Decoded configuration %v\n", cfg)
 
-	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	zone, domain, err := c.parseChallenge(ch)
+	if err != nil {
+		return err
+	}
 
-	// TODO: add code that sets a record in the DNS provider's console
-	return nil
+	return c.createRecord(cfg, zone, domain, ch.Key)
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -102,9 +114,19 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // value provided on the ChallengeRequest should be cleaned up.
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
-func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
-	return nil
+func (c *ns1DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Decoded configuration %v\n", cfg)
+
+	zone, domain, err := c.parseChallenge(ch)
+	if err != nil {
+		return err
+	}
+
+	return c.deleteRecord(cfg, zone, domain, ch.Key)
 }
 
 // Initialize will be called when the webhook first starts.
@@ -116,7 +138,7 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 // provider accounts.
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
-func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (c *ns1DNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
 	///// YOUR CUSTOM DNS PROVIDER
 
@@ -133,8 +155,8 @@ func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stop
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *extapi.JSON) (customDNSProviderConfig, error) {
-	cfg := customDNSProviderConfig{}
+func loadConfig(cfgJSON *extapi.JSON) (ns1DNSProviderConfig, error) {
+	cfg := ns1DNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
 		return cfg, nil
@@ -144,4 +166,87 @@ func loadConfig(cfgJSON *extapi.JSON) (customDNSProviderConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+func (c *ns1DNSProviderSolver) setClient(cfg ns1DNSProviderConfig) {
+	httpClient := &http.Client{}
+	if cfg.IgnoreSSL == true {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		httpClient.Transport = tr
+	}
+	client := ns1API.NewClient(
+		httpClient,
+		ns1API.SetAPIKey(cfg.APIKey),
+		ns1API.SetEndpoint(cfg.Endpoint),
+	)
+	c.client = client
+}
+
+// Create a TXT Record for domain.zone with answer set to DNS challenge key
+func (c *ns1DNSProviderSolver) createRecord(
+	cfg ns1DNSProviderConfig, zone, domain, answer string,
+) error {
+	if c.client == nil {
+		c.setClient(cfg)
+	}
+	fmt.Printf("Creating TXT Record for %s.%s\n", domain, zone)
+
+	record := ns1DNS.NewRecord(zone, domain, "TXT")
+	record.TTL = cfg.TTL
+	record.AddAnswer(ns1DNS.NewTXTAnswer(answer))
+	_, err := c.client.Records.Create(record)
+	if err != nil {
+	  if err != ns1API.ErrRecordExists {
+			return err
+		}
+	}
+
+	fmt.Printf("Created TXT Record: %v\n", record)
+	return nil
+}
+
+// NS1 API disallows multiple TXT records for the same FQDN, so we don't need
+// to check the answer value.
+func (c *ns1DNSProviderSolver) deleteRecord(
+	cfg ns1DNSProviderConfig, zone, domain, answer string,
+) error {
+	if c.client == nil {
+		c.setClient(cfg)
+	}
+	fmt.Printf("Deleting TXT Record for %s.%s\n", domain, zone)
+
+	_, err := c.client.Records.Delete(
+		zone, fmt.Sprintf("%s.%s", domain, zone), "TXT",
+	)
+	if err != nil {
+	  if err != ns1API.ErrRecordExists {
+			return err
+		}
+	}
+
+	fmt.Printf("Deleted TXT Record\n")
+	return nil
+}
+
+// Get the zone and domain we are setting from the challenge request
+func (c *ns1DNSProviderSolver) parseChallenge(ch *v1alpha1.ChallengeRequest) (
+	zone string, domain string, err error,
+) {
+
+	zone, err = util.FindZoneByFqdn(ch.ResolvedFQDN, util.RecursiveNameservers)
+	if err == nil {
+		zone = util.UnFqdn(zone)
+	} else {
+		return "", "", err
+	}
+
+	if idx := strings.Index(ch.ResolvedFQDN, "." + ch.ResolvedZone); idx != -1 {
+		domain = ch.ResolvedFQDN[:idx]
+	} else {
+		domain = util.UnFqdn(ch.ResolvedFQDN)
+	}
+
+	return zone, domain, nil
 }
