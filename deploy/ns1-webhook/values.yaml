@@ -8,9 +8,20 @@
 # here is recommended.
 groupName: acme.nsone.net
 
+ns1API:
+  endpoint: "https://api.nsone.net/v1/"
+  ignoreSSL: false
+  ttl: 600
+
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
+
+clusterIssuer:
+  name: letsencrypt
+  enabled: false
+  staging: true
+  email: ""
 
 image:
   repository: ns1/cert-manager-webhook-ns1

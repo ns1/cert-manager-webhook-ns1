@@ -1,9 +1,17 @@
 # ACME webhook for NS1
 
+## Prerequisites
+
+[certmanager](https://github.com/jetstack/cert-manager)
+
 ## Installation
 
+Have an NS1 API Key and:
+
 ```bash
-$ helm install --name cert-manager-webhook-ns1 ./deploy/ns1-webhook
+$ helm install --name cert-manager-webhook-ns1 ./deploy/ns1-webhook \
+  --set groupName=<GROUP_NAME> \
+  --set clusterIssuer.enabled=true,clusterIssuer.email=<EMAIL_ADDRESS>
 ```
 
 ## Issuer
@@ -67,10 +75,11 @@ spec:
       dns01:
         webhook:
           config:
-            apiKey: <your NS1 API Key>
             apiKeyRef:
-              key: apiKeySecret
+              key: apiKey
               name: ns1-credentials
+            endpoint: 'https://api.nsone.net/v1/'
+            ignoreSSL: false
             ttl: 600
           groupName: acme.ns1.net
           solverName: ns1

@@ -1,4 +1,4 @@
-IMAGE_NAME := "webhook"
+IMAGE_NAME := "ns1/cert-manager-webhook-ns1"
 IMAGE_TAG := "latest"
 
 OUT := $(shell pwd)/_out
