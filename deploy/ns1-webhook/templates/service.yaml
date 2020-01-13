@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "example-webhook.fullname" . }}
+  name: {{ include "ns1-webhook.fullname" . }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "ns1-webhook.name" . }}
+    chart: {{ include "ns1-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -15,5 +15,5 @@ spec:
       protocol: TCP
       name: https
   selector:
-    app: {{ include "example-webhook.name" . }}
+    app: {{ include "ns1-webhook.name" . }}
     release: {{ .Release.Name }}

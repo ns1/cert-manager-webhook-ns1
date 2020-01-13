@@ -8,9 +8,11 @@ import (
 	"os"
 	"strings"
 
+	certmanager_v1alpha1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	//"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
@@ -41,15 +43,10 @@ func main() {
 // challenge TXT record. To do so, it implements the
 // `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver` interface.
 type ns1DNSProviderSolver struct {
-	// If a Kubernetes 'clientset' is needed, you must:
-	// 1. uncomment the additional `client` field in this structure below
-	// 2. uncomment the "k8s.io/client-go/kubernetes" import at the top of the file
-	// 3. uncomment the relevant code in the Initialize method below
 	// 4. ensure your webhook's service account has the required RBAC role
 	//    assigned to it for interacting with the Kubernetes APIs you need.
-	//client kubernetes.Clientset
-
-	client *ns1API.Client
+	client    *kubernetes.Clientset
+	dnsClient *ns1API.Client
 }
 
 // ns1DNSProviderConfig is a structure that is used to decode into when
@@ -73,10 +70,11 @@ type ns1DNSProviderConfig struct {
 	//Email           string `json:"email"`
 	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
 
-	APIKey    string `json:"apiKey"`
-	Endpoint  string `json:"endpoint"`
-	IgnoreSSL bool   `json:"ignoreSSL"`
-	TTL       int    `json:"ttl"`
+	APIKey    string                                 `json:"apiKey"`
+	APIKeyRef certmanager_v1alpha1.SecretKeySelector `json:"apiKeyRef"`
+	Endpoint  string                                 `json:"endpoint"`
+	IgnoreSSL bool                                   `json:"ignoreSSL"`
+	TTL       int                                    `json:"ttl"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -105,7 +103,27 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	return c.createRecord(cfg, zone, domain, ch.Key)
+	if c.dnsClient == nil {
+		if err := c.setDNSClient(ch, cfg); err != nil {
+			return err
+		}
+	}
+
+	// Create a TXT Record for domain.zone with answer set to DNS challenge key
+	fmt.Printf("Creating TXT Record for %s.%s\n", domain, zone)
+	record := ns1DNS.NewRecord(zone, domain, "TXT")
+	record.TTL = cfg.TTL
+	record.AddAnswer(ns1DNS.NewTXTAnswer(ch.Key))
+
+	_, err = c.dnsClient.Records.Create(record)
+	if err != nil {
+	  if err != ns1API.ErrRecordExists {
+			return err
+		}
+	}
+	fmt.Printf("Created TXT Record: %v\n", record)
+
+	return nil
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -126,7 +144,25 @@ func (c *ns1DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	return c.deleteRecord(cfg, zone, domain, ch.Key)
+	if c.dnsClient == nil {
+		if err := c.setDNSClient(ch, cfg); err != nil {
+			return err
+		}
+	}
+
+	fmt.Printf("Deleting TXT Record for %s.%s\n", domain, zone)
+
+	_, err = c.dnsClient.Records.Delete(
+		zone, fmt.Sprintf("%s.%s", domain, zone), "TXT",
+	)
+	if err != nil {
+	  if err != ns1API.ErrRecordExists {
+			return err
+		}
+	}
+
+	fmt.Printf("Deleted TXT Record\n")
+	return nil
 }
 
 // Initialize will be called when the webhook first starts.
@@ -139,17 +175,11 @@ func (c *ns1DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
 func (c *ns1DNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
-	///// YOUR CUSTOM DNS PROVIDER
-
-	//cl, err := kubernetes.NewForConfig(kubeClientConfig)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//c.client = cl
-
-	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLE
+	cl, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return err
+	}
+	c.client = cl
 	return nil
 }
 
@@ -168,7 +198,44 @@ func loadConfig(cfgJSON *extapi.JSON) (ns1DNSProviderConfig, error) {
 	return cfg, nil
 }
 
-func (c *ns1DNSProviderSolver) setClient(cfg ns1DNSProviderConfig) {
+func (c *ns1DNSProviderSolver) setDNSClient(ch *v1alpha1.ChallengeRequest, cfg ns1DNSProviderConfig) error {
+	apiKey := cfg.APIKey
+	if apiKey == "" {
+		ref := cfg.APIKeyRef
+		if ref.Key == "" {
+			return fmt.Errorf(
+				"no APIKey for %q in secret '%s/%s'",
+				ref.Name,
+				ref.Key,
+				ch.ResourceNamespace,
+			)
+		}
+		if ref.Name == "" {
+			return fmt.Errorf(
+				"no APIKey for %q in secret '%s/%s'",
+				ref.Name,
+				ref.Key,
+				ch.ResourceNamespace,
+			)
+		}
+		secret, err := c.client.CoreV1().Secrets(ch.ResourceNamespace).Get(
+			ref.Name, metav1.GetOptions{},
+		)
+		if err != nil {
+			return err
+		}
+		apiKeyRef, ok := secret.Data[ref.Key]
+		if !ok {
+			return fmt.Errorf(
+				"no APIKey for %q in secret '%s/%s'",
+				ref.Name,
+				ref.Key,
+				ch.ResourceNamespace,
+			)
+		}
+		apiKey = fmt.Sprintf("%s", apiKeyRef)
+	}
+
 	httpClient := &http.Client{}
 	if cfg.IgnoreSSL == true {
 		tr := &http.Transport{
@@ -176,57 +243,12 @@ func (c *ns1DNSProviderSolver) setClient(cfg ns1DNSProviderConfig) {
 		}
 		httpClient.Transport = tr
 	}
-	client := ns1API.NewClient(
+	c.dnsClient = ns1API.NewClient(
 		httpClient,
 		ns1API.SetAPIKey(cfg.APIKey),
 		ns1API.SetEndpoint(cfg.Endpoint),
 	)
-	c.client = client
-}
 
-// Create a TXT Record for domain.zone with answer set to DNS challenge key
-func (c *ns1DNSProviderSolver) createRecord(
-	cfg ns1DNSProviderConfig, zone, domain, answer string,
-) error {
-	if c.client == nil {
-		c.setClient(cfg)
-	}
-	fmt.Printf("Creating TXT Record for %s.%s\n", domain, zone)
-
-	record := ns1DNS.NewRecord(zone, domain, "TXT")
-	record.TTL = cfg.TTL
-	record.AddAnswer(ns1DNS.NewTXTAnswer(answer))
-	_, err := c.client.Records.Create(record)
-	if err != nil {
-	  if err != ns1API.ErrRecordExists {
-			return err
-		}
-	}
-
-	fmt.Printf("Created TXT Record: %v\n", record)
-	return nil
-}
-
-// NS1 API disallows multiple TXT records for the same FQDN, so we don't need
-// to check the answer value.
-func (c *ns1DNSProviderSolver) deleteRecord(
-	cfg ns1DNSProviderConfig, zone, domain, answer string,
-) error {
-	if c.client == nil {
-		c.setClient(cfg)
-	}
-	fmt.Printf("Deleting TXT Record for %s.%s\n", domain, zone)
-
-	_, err := c.client.Records.Delete(
-		zone, fmt.Sprintf("%s.%s", domain, zone), "TXT",
-	)
-	if err != nil {
-	  if err != ns1API.ErrRecordExists {
-			return err
-		}
-	}
-
-	fmt.Printf("Deleted TXT Record\n")
 	return nil
 }
 

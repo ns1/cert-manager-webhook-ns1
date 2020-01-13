@@ -1,25 +1,25 @@
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: {{ include "example-webhook.fullname" . }}
+  name: {{ include "ns1-webhook.fullname" . }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "ns1-webhook.name" . }}
+    chart: {{ include "ns1-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "example-webhook.name" . }}
+      app: {{ include "ns1-webhook.name" . }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ include "example-webhook.name" . }}
+        app: {{ include "ns1-webhook.name" . }}
         release: {{ .Release.Name }}
     spec:
-      serviceAccountName: {{ include "example-webhook.fullname" . }}
+      serviceAccountName: {{ include "ns1-webhook.fullname" . }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -53,7 +53,7 @@ spec:
       volumes:
         - name: certs
           secret:
-            secretName: {{ include "example-webhook.servingCertificate" . }}
+            secretName: {{ include "ns1-webhook.servingCertificate" . }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
