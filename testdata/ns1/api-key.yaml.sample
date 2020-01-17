@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ns1-credentials
+type: Opaque
+data:
+  key: "<BASE64 ENCODED NS1 API KEY>"

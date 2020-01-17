@@ -45,8 +45,8 @@ func main() {
 type ns1DNSProviderSolver struct {
 	// 4. ensure your webhook's service account has the required RBAC role
 	//    assigned to it for interacting with the Kubernetes APIs you need.
-	client    *kubernetes.Clientset
-	dnsClient *ns1API.Client
+	k8sClient *kubernetes.Clientset
+	ns1Client *ns1API.Client
 }
 
 // ns1DNSProviderConfig is a structure that is used to decode into when
@@ -70,11 +70,10 @@ type ns1DNSProviderConfig struct {
 	//Email           string `json:"email"`
 	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
 
-	APIKey    string                                 `json:"apiKey"`
-	APIKeyRef certmanager_v1alpha1.SecretKeySelector `json:"apiKeyRef"`
-	Endpoint  string                                 `json:"endpoint"`
-	IgnoreSSL bool                                   `json:"ignoreSSL"`
-	TTL       int                                    `json:"ttl"`
+	APIKeySecretRef certmanager_v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
+	Endpoint        string                                 `json:"endpoint"`
+	IgnoreSSL       bool                                   `json:"ignoreSSL"`
+	TTL             int                                    `json:"ttl"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -103,8 +102,8 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	if c.dnsClient == nil {
-		if err := c.setDNSClient(ch, cfg); err != nil {
+	if c.ns1Client == nil {
+		if err := c.setNS1Client(ch, cfg); err != nil {
 			return err
 		}
 	}
@@ -115,7 +114,7 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	record.TTL = cfg.TTL
 	record.AddAnswer(ns1DNS.NewTXTAnswer(ch.Key))
 
-	_, err = c.dnsClient.Records.Create(record)
+	_, err = c.ns1Client.Records.Create(record)
 	if err != nil {
 	  if err != ns1API.ErrRecordExists {
 			return err
@@ -144,15 +143,15 @@ func (c *ns1DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	if c.dnsClient == nil {
-		if err := c.setDNSClient(ch, cfg); err != nil {
+	if c.ns1Client == nil {
+		if err := c.setNS1Client(ch, cfg); err != nil {
 			return err
 		}
 	}
 
 	fmt.Printf("Deleting TXT Record for %s.%s\n", domain, zone)
 
-	_, err = c.dnsClient.Records.Delete(
+	_, err = c.ns1Client.Records.Delete(
 		zone, fmt.Sprintf("%s.%s", domain, zone), "TXT",
 	)
 	if err != nil {
@@ -179,7 +178,7 @@ func (c *ns1DNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh 
 	if err != nil {
 		return err
 	}
-	c.client = cl
+	c.k8sClient = cl
 	return nil
 }
 
@@ -198,43 +197,41 @@ func loadConfig(cfgJSON *extapi.JSON) (ns1DNSProviderConfig, error) {
 	return cfg, nil
 }
 
-func (c *ns1DNSProviderSolver) setDNSClient(ch *v1alpha1.ChallengeRequest, cfg ns1DNSProviderConfig) error {
-	apiKey := cfg.APIKey
-	if apiKey == "" {
-		ref := cfg.APIKeyRef
-		if ref.Key == "" {
-			return fmt.Errorf(
-				"no APIKey for %q in secret '%s/%s'",
-				ref.Name,
-				ref.Key,
-				ch.ResourceNamespace,
-			)
-		}
-		if ref.Name == "" {
-			return fmt.Errorf(
-				"no APIKey for %q in secret '%s/%s'",
-				ref.Name,
-				ref.Key,
-				ch.ResourceNamespace,
-			)
-		}
-		secret, err := c.client.CoreV1().Secrets(ch.ResourceNamespace).Get(
-			ref.Name, metav1.GetOptions{},
+func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg ns1DNSProviderConfig) error {
+	ref := cfg.APIKeySecretRef
+	if ref.Key == "" {
+		return fmt.Errorf(
+			"no APIKey for %q in secret '%s/%s'",
+			ref.Name,
+			ref.Key,
+			ch.ResourceNamespace,
 		)
-		if err != nil {
-			return err
-		}
-		apiKeyRef, ok := secret.Data[ref.Key]
-		if !ok {
-			return fmt.Errorf(
-				"no APIKey for %q in secret '%s/%s'",
-				ref.Name,
-				ref.Key,
-				ch.ResourceNamespace,
-			)
-		}
-		apiKey = fmt.Sprintf("%s", apiKeyRef)
 	}
+	if ref.Name == "" {
+		return fmt.Errorf(
+			"no APIKey for %q in secret '%s/%s'",
+			ref.Name,
+			ref.Key,
+			ch.ResourceNamespace,
+		)
+	}
+
+	secret, err := c.k8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(
+		ref.Name, metav1.GetOptions{},
+	)
+	if err != nil {
+		return err
+	}
+	apiKeyBytes, ok := secret.Data[ref.Key]
+	if !ok {
+		return fmt.Errorf(
+			"no APIKey for %q in secret '%s/%s'",
+			ref.Name,
+			ref.Key,
+			ch.ResourceNamespace,
+		)
+	}
+	apiKey := string(apiKeyBytes)
 
 	httpClient := &http.Client{}
 	if cfg.IgnoreSSL == true {
@@ -243,9 +240,9 @@ func (c *ns1DNSProviderSolver) setDNSClient(ch *v1alpha1.ChallengeRequest, cfg n
 		}
 		httpClient.Transport = tr
 	}
-	c.dnsClient = ns1API.NewClient(
+	c.ns1Client = ns1API.NewClient(
 		httpClient,
-		ns1API.SetAPIKey(cfg.APIKey),
+		ns1API.SetAPIKey(apiKey),
 		ns1API.SetEndpoint(cfg.Endpoint),
 	)
 
