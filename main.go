@@ -8,11 +8,10 @@ import (
 	"os"
 	"strings"
 
-	certmanager_v1alpha1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
@@ -20,6 +19,8 @@ import (
 
 	ns1API "gopkg.in/ns1/ns1-go.v2/rest"
 	ns1DNS "gopkg.in/ns1/ns1-go.v2/rest/model/dns"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
@@ -67,13 +68,10 @@ type ns1DNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
-	//Email           string `json:"email"`
-	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
-
-	APIKeySecretRef certmanager_v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
-	Endpoint        string                                 `json:"endpoint"`
-	IgnoreSSL       bool                                   `json:"ignoreSSL"`
-	TTL             int                                    `json:"ttl"`
+	APIKeySecretRef cmmeta.SecretKeySelector `json:"apiKeySecretRef"`
+	Endpoint        string                   `json:"endpoint"`
+	IgnoreSSL       bool                     `json:"ignoreSSL"`
+	TTL             int                      `json:"ttl"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME

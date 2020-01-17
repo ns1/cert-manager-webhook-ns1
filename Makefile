@@ -1,4 +1,4 @@
-IMAGE_NAME := "ns1/cert-manager-webhook-ns1"
+IMAGE_NAME := "webhook"
 IMAGE_TAG := "latest"
 
 OUT := $(shell pwd)/_out
@@ -17,4 +17,4 @@ rendered-manifest.yaml:
 		--name cert-manager-webhook-ns1 \
 		--set image.repository=$(IMAGE_NAME) \
 		--set image.tag=$(IMAGE_TAG) \
-		deploy/ns1-webhook > "$(OUT)/rendered-manifest.yaml"
+		deploy/cert-manager-webhook-ns1 > "$(OUT)/rendered-manifest.yaml"

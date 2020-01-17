@@ -11,7 +11,7 @@ This is a webhook solver for [NS1](http://ns1.com).
 Install with helm:
 
 ```bash
-$ helm install --name cert-manager-webhook-ns1 ./deploy/ns1-webhook
+$ helm install --name cert-manager-webhook-ns1 ./deploy/cert-manager-ns1-webhook
 ```
 
 Issuer
