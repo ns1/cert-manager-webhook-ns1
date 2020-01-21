@@ -13,7 +13,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: ns1/cert-manager-webhook-ns1
+  repository: ns1inc/cert-manager-webhook-ns1
   tag: latest
   pullPolicy: IfNotPresent
 
