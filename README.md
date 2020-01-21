@@ -76,9 +76,9 @@ spec:
             apiKeySecretRef:
               key: apiKey
               name: ns1-credentials
-            endpoint:
-            ignoreSSL:
-            ttl:
+            endpoint: "https://api.nsone.net/v1/"
+            ignoreSSL: false
+            ttl: 600
 ```
 
 5. Create a production issuer
@@ -108,9 +108,9 @@ spec:
             apiKeySecretRef:
               key: apiKey
               name: ns1-credentials
-            endpoint:
-            ignoreSSL:
-            ttl:
+            endpoint: "https://api.nsone.net/v1/"
+            ignoreSSL: false
+            ttl: 600
 ```
 
 ## Certificate
@@ -124,7 +124,7 @@ metadata:
 spec:
   commonName: example-com
   dnsNames:
-  - example-com
+  - example.com
   issuerRef:
     name: letsencrypt-staging
   secretName: example-com-tls
