@@ -6,24 +6,34 @@ This is a webhook solver for [NS1](http://ns1.com).
 
 [certmanager](https://github.com/jetstack/cert-manager)
 
+tested with v0.13.0
+
 ## Installation
 
 Install with helm:
 
 ```bash
-$ helm install --name cert-manager-webhook-ns1 ./deploy/cert-manager-ns1-webhook
+$ helm install --namespace cert-manager --name cert-manager-webhook-ns1 \
+  ./deploy/cert-manager-webhook-ns1
 ```
 
 Issuer
 
-1. Populate secret with your NS1 API Key:
-
+1. Populate a secret with your NS1 API Key:
 ```bash
 $ kubectl --namespace cert-manager create secret generic \
-  ns1-credentials --from-literal=APIKey='Your NS1 API Key'
+  ns1-credentials --from-literal=apiKey='Your NS1 API Key'
 ```
 
-2. Grant permission for service-account to get the secret
+2. Add the following resources, something like:
+```bash
+  kubectl --namespace cert-manager apply -f my_resource.yaml
+```
+
+Note that it may make more sense in your setup to use e.g. `ClusterRole` or
+`ClusterIssuer` and/or to have more nuanced namespace management.
+
+3. Grants permission for service-account to get the secret:
 ```yaml
   apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
@@ -35,7 +45,7 @@ $ kubectl --namespace cert-manager create secret generic \
     resourceNames: ["ns1-credentials"]
     verbs: ["get", "watch"]
   ---
-  apiVersion: rbac.authorization.k8s.io/v1beta1
+  apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     name: cert-manager-webhook-ns1:secret-reader
@@ -49,9 +59,9 @@ $ kubectl --namespace cert-manager create secret generic \
       name: cert-manager-webhook-ns1
 ```
 
-4. Create a staging issuer *Optional*
+4. Creates a staging issuer *Optional*:
 ```yaml
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: letsencrypt-staging
@@ -81,9 +91,9 @@ spec:
             ttl: 600
 ```
 
-5. Create a production issuer
+5. Creates a production issuer:
 ```yaml
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: letsencrypt-prod
@@ -115,14 +125,14 @@ spec:
 
 ## Certificate
 
-1. Issue a certificate
+1. Issues a certificate
 ```yaml
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
-  name: example-com
+  name: example.com
 spec:
-  commonName: example-com
+  commonName: example.com
   dnsNames:
   - example.com
   issuerRef:
@@ -133,6 +143,14 @@ spec:
 ### Automatically creating Certificates for Ingress resources
 
 See [this](https://docs.cert-manager.io/en/latest/tasks/issuing-certificates/ingress-shim.html).
+
+### Troubleshooting
+
+Some cert-manager docs that may be helpful:
+
+* About [ACME](https://cert-manager.io/docs/configuration/acme/)
+* About [DNS01 Challenges](https://cert-manager.io/docs/configuration/acme/dns01/)
+* [Troubleshooting Issuing ACME Certificates](https://cert-manager.io/docs/faq/acme/)
 
 ## Development
 

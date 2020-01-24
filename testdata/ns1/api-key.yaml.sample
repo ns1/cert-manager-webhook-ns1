@@ -4,4 +4,4 @@ metadata:
   name: ns1-credentials
 type: Opaque
 data:
-  key: "<BASE64 ENCODED NS1 API KEY>"
+  apiKey: "<BASE64 ENCODED NS1 API KEY>"
