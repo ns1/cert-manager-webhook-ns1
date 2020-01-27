@@ -93,7 +93,6 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Decoded configuration %v\n", cfg)
 
 	zone, domain, err := c.parseChallenge(ch)
 	if err != nil {
@@ -107,7 +106,6 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	// Create a TXT Record for domain.zone with answer set to DNS challenge key
-	fmt.Printf("Creating TXT Record for %s.%s\n", domain, zone)
 	record := ns1DNS.NewRecord(zone, domain, "TXT")
 	record.TTL = cfg.TTL
 	record.AddAnswer(ns1DNS.NewTXTAnswer(ch.Key))
@@ -118,7 +116,6 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 			return err
 		}
 	}
-	fmt.Printf("Created TXT Record: %v\n", record)
 
 	return nil
 }
@@ -134,7 +131,6 @@ func (c *ns1DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Decoded configuration %v\n", cfg)
 
 	zone, domain, err := c.parseChallenge(ch)
 	if err != nil {
@@ -147,18 +143,13 @@ func (c *ns1DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		}
 	}
 
-	fmt.Printf("Deleting TXT Record for %s.%s\n", domain, zone)
-
-	_, err = c.ns1Client.Records.Delete(
+	// Create the TXT Record we created in Present
+	if _, err = c.ns1Client.Records.Delete(
 		zone, fmt.Sprintf("%s.%s", domain, zone), "TXT",
-	)
-	if err != nil {
-	  if err != ns1API.ErrRecordExists {
-			return err
-		}
+	); err != nil {
+		return err
 	}
 
-	fmt.Printf("Deleted TXT Record\n")
 	return nil
 }
 
@@ -199,18 +190,18 @@ func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg n
 	ref := cfg.APIKeySecretRef
 	if ref.Key == "" {
 		return fmt.Errorf(
-			"no APIKey for %q in secret '%s/%s'",
-			ref.Name,
+			"no key '%s' in secret '%s/%s'",
 			ref.Key,
 			ch.ResourceNamespace,
+			ref.Name,
 		)
 	}
 	if ref.Name == "" {
 		return fmt.Errorf(
-			"no APIKey for %q in secret '%s/%s'",
-			ref.Name,
+			"no Key '%s' in secret '%s/%s'",
 			ref.Key,
 			ch.ResourceNamespace,
+			ref.Name,
 		)
 	}
 
@@ -223,10 +214,10 @@ func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg n
 	apiKeyBytes, ok := secret.Data[ref.Key]
 	if !ok {
 		return fmt.Errorf(
-			"no APIKey for %q in secret '%s/%s'",
-			ref.Name,
+			"no key '%s' in secret '%s/%s'",
 			ref.Key,
 			ch.ResourceNamespace,
+			ref.Name,
 		)
 	}
 	apiKey := string(apiKeyBytes)
@@ -252,12 +243,12 @@ func (c *ns1DNSProviderSolver) parseChallenge(ch *v1alpha1.ChallengeRequest) (
 	zone string, domain string, err error,
 ) {
 
-	zone, err = util.FindZoneByFqdn(ch.ResolvedFQDN, util.RecursiveNameservers)
-	if err == nil {
-		zone = util.UnFqdn(zone)
-	} else {
+	if zone, err = util.FindZoneByFqdn(
+		ch.ResolvedFQDN, util.RecursiveNameservers,
+	); err != nil {
 		return "", "", err
 	}
+	zone = util.UnFqdn(zone)
 
 	if idx := strings.Index(ch.ResolvedFQDN, "." + ch.ResolvedZone); idx != -1 {
 		domain = ch.ResolvedFQDN[:idx]

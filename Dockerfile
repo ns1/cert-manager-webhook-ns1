@@ -1,9 +1,8 @@
-FROM golang:1.12-alpine AS build_deps
+FROM golang:1.13-alpine AS build_deps
 
-RUN apk add --no-cache bzr git
+RUN apk add --no-cache git
 
 WORKDIR /workspace
-ENV GO111MODULE=on
 
 COPY go.mod .
 COPY go.sum .

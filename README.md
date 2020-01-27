@@ -4,62 +4,65 @@ This is a webhook solver for [NS1](http://ns1.com).
 
 ## Prerequisites
 
-[certmanager](https://github.com/jetstack/cert-manager)
+[certmanager](https://cert-manager.io/docs/installation/kubernetes/)
 
-tested with v0.13.0
+tested with cert-manager v0.13.0
 
 ## Installation
 
-Install with helm:
+1. Install with helm (tested vith v2.16.1):
 
 ```bash
 $ helm install --namespace cert-manager --name cert-manager-webhook-ns1 \
   ./deploy/cert-manager-webhook-ns1
 ```
 
-Issuer
-
-1. Populate a secret with your NS1 API Key:
+2. Populate a secret with your NS1 API Key:
 ```bash
 $ kubectl --namespace cert-manager create secret generic \
   ns1-credentials --from-literal=apiKey='Your NS1 API Key'
 ```
 
-2. Add the following resources, something like:
+## Configuration
+
+You'll need to edit and apply some resources, with something like:
 ```bash
   kubectl --namespace cert-manager apply -f my_resource.yaml
 ```
+Note that we use the `cert-manager` namespace, but it may make more sense in
+your setup to hame more nuanced namespace management.
 
-Note that it may make more sense in your setup to use e.g. `ClusterRole` or
-`ClusterIssuer` and/or to have more nuanced namespace management.
+1. Grant permission for service-account to get the secret. Note that it may
+make more sense in your setup to use a `ClusterRole`.
 
-3. Grants permission for service-account to get the secret:
 ```yaml
-  apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cert-manager-webhook-ns1:secret-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["ns1-credentials"]
+  verbs: ["get", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cert-manager-webhook-ns1:secret-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
   kind: Role
-  metadata:
-    name: cert-manager-webhook-ns1:secret-reader
-  rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    resourceNames: ["ns1-credentials"]
-    verbs: ["get", "watch"]
-  ---
-  apiVersion: rbac.authorization.k8s.io/v1
-  kind: RoleBinding
-  metadata:
-    name: cert-manager-webhook-ns1:secret-reader
-  roleRef:
-    apiGroup: rbac.authorization.k8s.io
-    kind: Role
-    name: cert-manager-webhook-ns1:secret-reader
-  subjects:
-    - apiGroup: ""
-      kind: ServiceAccount
-      name: cert-manager-webhook-ns1
+  name: cert-manager-webhook-ns1:secret-reader
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager-webhook-ns1
 ```
 
-4. Creates a staging issuer *Optional*:
+2. Create an issuer, we use `letsencryt`:
+
+Staging issuer **optional**:
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
@@ -91,7 +94,7 @@ spec:
             ttl: 600
 ```
 
-5. Creates a production issuer:
+Production issuer:
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
@@ -123,9 +126,8 @@ spec:
             ttl: 600
 ```
 
-## Certificate
-
-1. Issues a certificate
+3. Issue a certificate. This example requests a cert for `example.com` from the
+staging issuer:
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
@@ -179,3 +181,7 @@ $ scripts/fetch-test-binaries.sh
 ```bash
 $ TEST_ZONE_NAME=example.com. go test .
 ```
+
+### Maintaining the Docker image
+
+See `Makefile` for commands to build and push the Docker image.

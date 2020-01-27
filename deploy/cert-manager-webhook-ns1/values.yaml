@@ -15,7 +15,7 @@ certManager:
 image:
   repository: ns1inc/cert-manager-webhook-ns1
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 nameOverride: ""
 fullnameOverride: ""
