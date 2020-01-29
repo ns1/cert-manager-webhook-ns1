@@ -176,15 +176,13 @@ func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg n
 	ref := cfg.APIKeySecretRef
 	if ref.Name == "" {
 		return fmt.Errorf(
-			"secret '%s/%s' not found",
+			"secret for NS1 apiKey not found in '%s'",
 			ch.ResourceNamespace,
-			ref.Name,
 		)
 	}
 	if ref.Key == "" {
 		return fmt.Errorf(
-			"no key '%s' in secret '%s/%s'",
-			ref.Key,
+			"no 'key' set in secret '%s/%s'",
 			ch.ResourceNamespace,
 			ref.Name,
 		)
