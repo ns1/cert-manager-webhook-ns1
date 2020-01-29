@@ -1,39 +1,37 @@
 # NS1 Webhook for Cert Manager
 
-This is a webhook solver for [NS1](http://ns1.com).
+This is an webhook solver for [NS1](http://ns1.com), for use with cert-manager,
+to solve ACME DNS01 challenges.
+
+Tested with kubernetes v16 and v17
 
 ## Prerequisites
 
 [certmanager](https://cert-manager.io/docs/installation/kubernetes/)
 
-tested with cert-manager v0.13.0
+Tested with cert-manager v0.13.0
 
 ## Installation
 
-1. Install with helm (tested vith v2.16.1):
+1. Install the chart with helm (tested vith v2.16.1):
+
+Note: on kubernetes v17, the `extension-apiserver-authentication-reader` role
+has the needed permissions out of the box. On earlier versions, the role may
+not have sufficient permissions to manage `configmaps`. Before installing this
+chart, edit the role and verify/ensure that the role has `get`, `list`, and
+`watch` verbs set on the `configmaps` resource.
 
 ```bash
-$ helm install --namespace cert-manager --name cert-manager-webhook-ns1 \
-  ./deploy/cert-manager-webhook-ns1
+$ helm install --namespace cert-manager --name cert-manager-webhook-ns1 ./deploy/cert-manager-webhook-ns1
 ```
 
-2. Populate a secret with your NS1 API Key:
+2. Populate a secret with your NS1 API Key and grant permission for service
+account to get the secret. Note that it may make more sense in your setup to
+use a `ClusterRole`.
 ```bash
 $ kubectl --namespace cert-manager create secret generic \
   ns1-credentials --from-literal=apiKey='Your NS1 API Key'
 ```
-
-## Configuration
-
-You'll need to edit and apply some resources, with something like:
-```bash
-  kubectl --namespace cert-manager apply -f my_resource.yaml
-```
-Note that we use the `cert-manager` namespace, but it may make more sense in
-your setup to hame more nuanced namespace management.
-
-1. Grant permission for service-account to get the secret. Note that it may
-make more sense in your setup to use a `ClusterRole`.
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -60,12 +58,23 @@ subjects:
     name: cert-manager-webhook-ns1
 ```
 
-2. Create an issuer, we use `letsencryt`:
+## Configuration
 
-Staging issuer **optional**:
+You'll need to edit and apply some resources, with something like:
+```bash
+$ kubectl --namespace cert-manager apply -f my_resource.yaml
+```
+Note that we use the `cert-manager` namespace, but it may make more sense in
+your setup to hame more nuanced namespace management.
+
+2. Create Issuer(s), we'll use `letsencrypt` for example. We'll use
+`ClusterIssuer` here, which will be available accross namespaces. You may
+prefer to use `Issuer`.
+
+Staging issuer (**optional**):
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
-kind: Issuer
+kind: ClusterIssuer
 metadata:
   name: letsencrypt-staging
 spec:
@@ -89,6 +98,7 @@ spec:
             apiKeySecretRef:
               key: apiKey
               name: ns1-credentials
+            # Replace this with your NS1 API endpoint if not using "managed"
             endpoint: "https://api.nsone.net/v1/"
             ignoreSSL: false
             ttl: 600
@@ -97,7 +107,7 @@ spec:
 Production issuer:
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
-kind: Issuer
+kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
 spec:
@@ -121,13 +131,14 @@ spec:
             apiKeySecretRef:
               key: apiKey
               name: ns1-credentials
+            # Replace this with your NS1 API endpoint if not using "managed"
             endpoint: "https://api.nsone.net/v1/"
             ignoreSSL: false
             ttl: 600
 ```
 
-3. Issue a certificate. This example requests a cert for `example.com` from the
-staging issuer:
+2. Test things by issuing a certificate. This example requests a cert for
+`example.com` from the staging issuer:
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
@@ -142,9 +153,36 @@ spec:
   secretName: example-com-tls
 ```
 
+After a minute or two, the `Certificate` should show as `Ready`. If not, you
+can follow the resource chain from `Certificate` to `CertificateRequest` and on
+down until you see a useful error message.
+
 ### Automatically creating Certificates for Ingress resources
 
 See [this](https://docs.cert-manager.io/en/latest/tasks/issuing-certificates/ingress-shim.html).
+
+The gist of it is adding some annotations and a `tls` section to your ingress
+definition, e.g:
+```bash
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: my-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod" # sets the issuer to use
+spec:
+  rules:
+  - host: mp-app.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: my-app-service
+          servicePort: 80
+  tls:
+  - hosts:
+    - my-app.example.com   # domain name(s) for the certificate
+    secretName: my-app-tls # where to store the secret
+```
 
 ### Troubleshooting
 
