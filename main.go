@@ -23,19 +23,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var GroupName = os.Getenv("GROUP_NAME")
+var groupName = os.Getenv("GROUP_NAME")
 
 func main() {
-	if GroupName == "" {
+	if groupName == "" {
 		panic("GROUP_NAME must be specified")
 	}
 
 	// This will register our NS1 DNS provider with the webhook serving
-	// library, making it available as an API under the provided GroupName.
+	// library, making it available as an API under the provided groupName.
 	// You can register multiple DNS provider implementations with a single
 	// webhook, where the Name() method will be used to disambiguate between
 	// the different implementations.
-	cmd.RunWebhookServer(GroupName,
+	cmd.RunWebhookServer(groupName,
 		&ns1DNSProviderSolver{},
 	)
 }
@@ -71,7 +71,6 @@ type ns1DNSProviderConfig struct {
 	APIKeySecretRef cmmeta.SecretKeySelector `json:"apiKeySecretRef"`
 	Endpoint        string                   `json:"endpoint"`
 	IgnoreSSL       bool                     `json:"ignoreSSL"`
-	TTL             int                      `json:"ttl"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -106,8 +105,9 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	// Create a TXT Record for domain.zone with answer set to DNS challenge key
+	// Short TTL is fine, as we delete the record after the challenge is solved.
 	record := ns1DNS.NewRecord(zone, domain, "TXT")
-	record.TTL = cfg.TTL
+	record.TTL = 600
 	record.AddAnswer(ns1DNS.NewTXTAnswer(ch.Key))
 
 	_, err = c.ns1Client.Records.Create(record)

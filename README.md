@@ -69,7 +69,8 @@ your setup to hame more nuanced namespace management.
 
 2. Create Issuer(s), we'll use `letsencrypt` for example. We'll use
 `ClusterIssuer` here, which will be available accross namespaces. You may
-prefer to use `Issuer`.
+prefer to use `Issuer`. This is where `NS1` API options are set (`endpoint`,
+`ignoreSSL`).
 
 Staging issuer (**optional**):
 ```yaml
@@ -101,7 +102,6 @@ spec:
             # Replace this with your NS1 API endpoint if not using "managed"
             endpoint: "https://api.nsone.net/v1/"
             ignoreSSL: false
-            ttl: 600
 ```
 
 Production issuer:
@@ -134,7 +134,6 @@ spec:
             # Replace this with your NS1 API endpoint if not using "managed"
             endpoint: "https://api.nsone.net/v1/"
             ignoreSSL: false
-            ttl: 600
 ```
 
 2. Test things by issuing a certificate. This example requests a cert for
@@ -191,6 +190,7 @@ Some cert-manager docs that may be helpful:
 * About [ACME](https://cert-manager.io/docs/configuration/acme/)
 * About [DNS01 Challenges](https://cert-manager.io/docs/configuration/acme/dns01/)
 * [Troubleshooting Issuing ACME Certificates](https://cert-manager.io/docs/faq/acme/)
+* [Securing Ingress Resources](https://cert-manager.io/docs/usage/ingress/)
 
 ## Development
 

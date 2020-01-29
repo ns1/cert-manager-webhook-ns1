@@ -4,6 +4,5 @@
       "key": "apiKey"
     },
     "endpoint": "https://api.nsone.net/v1/",
-    "ignoreSSL": false,
-    "ttl": 600
+    "ignoreSSL": false
 }
