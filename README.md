@@ -1,9 +1,9 @@
 # NS1 Webhook for Cert Manager
 
-This is an webhook solver for [NS1](http://ns1.com), for use with cert-manager,
+This is a webhook solver for [NS1](http://ns1.com), for use with cert-manager,
 to solve ACME DNS01 challenges.
 
-Tested with kubernetes v16 and v17
+Tested with kubernetes v1.16.2 and v1.17.0
 
 ## Prerequisites
 
