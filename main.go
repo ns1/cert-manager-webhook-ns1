@@ -32,9 +32,6 @@ func main() {
 
 	// This will register our NS1 DNS provider with the webhook serving
 	// library, making it available as an API under the provided groupName.
-	// You can register multiple DNS provider implementations with a single
-	// webhook, where the Name() method will be used to disambiguate between
-	// the different implementations.
 	cmd.RunWebhookServer(groupName,
 		&ns1DNSProviderSolver{},
 	)
@@ -44,8 +41,6 @@ func main() {
 // challenge TXT record. To do so, it implements the
 // `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver` interface.
 type ns1DNSProviderSolver struct {
-	// 4. ensure your webhook's service account has the required RBAC role
-	//    assigned to it for interacting with the Kubernetes APIs you need.
 	k8sClient *kubernetes.Clientset
 	ns1Client *ns1API.Client
 }
@@ -58,12 +53,6 @@ type ns1DNSProviderSolver struct {
 // This typically includes references to Secret resources containing DNS
 // provider credentials, in cases where a 'multi-tenant' DNS solver is being
 // created.
-// If you do *not* require per-issuer or per-certificate configuration to be
-// provided to your webhook, you can skip decoding altogether in favour of
-// using CLI flags or similar to provide configuration.
-// You should not include sensitive information here. If credentials need to
-// be used by your provider here, you should reference a Kubernetes Secret
-// resource and fetch these credentials using a Kubernetes clientset.
 type ns1DNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
@@ -75,9 +64,6 @@ type ns1DNSProviderConfig struct {
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
 // Issuer resource.
-// This should be unique **within the group name**, i.e. you can have two
-// solvers configured with the same Name() **so long as they do not co-exist
-// within a single webhook deployment**.
 func (c *ns1DNSProviderSolver) Name() string {
 	return "ns1"
 }
@@ -143,7 +129,7 @@ func (c *ns1DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		}
 	}
 
-	// Create the TXT Record we created in Present
+	// Delete the TXT Record we created in Present
 	if _, err = c.ns1Client.Records.Delete(
 		zone, fmt.Sprintf("%s.%s", domain, zone), "TXT",
 	); err != nil {
@@ -188,17 +174,16 @@ func loadConfig(cfgJSON *extapi.JSON) (ns1DNSProviderConfig, error) {
 
 func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg ns1DNSProviderConfig) error {
 	ref := cfg.APIKeySecretRef
-	if ref.Key == "" {
+	if ref.Name == "" {
 		return fmt.Errorf(
-			"no key '%s' in secret '%s/%s'",
-			ref.Key,
+			"secret '%s/%s' not found",
 			ch.ResourceNamespace,
 			ref.Name,
 		)
 	}
-	if ref.Name == "" {
+	if ref.Key == "" {
 		return fmt.Errorf(
-			"no Key '%s' in secret '%s/%s'",
+			"no key '%s' in secret '%s/%s'",
 			ref.Key,
 			ch.ResourceNamespace,
 			ref.Name,
