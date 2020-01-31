@@ -1,0 +1,8 @@
+{
+    "apiKeySecretRef": {
+      "name": "ns1-credentials",
+      "key": "apiKey"
+    },
+    "endpoint": "https://api.nsone.net/v1/",
+    "ignoreSSL": false
+}
