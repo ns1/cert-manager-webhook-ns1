@@ -31,12 +31,14 @@ $ helm install --namespace cert-manager --name cert-manager-webhook-ns1 ./deploy
 ```
 
 2. Populate a secret with your NS1 API Key
+
 ```bash
 $ kubectl --namespace cert-manager create secret generic ns1-credentials --from-literal=apiKey='Your NS1 API Key'
 ```
 
 3. We need to grant permission for service account to get the secret. Copy the
 following and apply with something like:
+
 ```bash
 $ kubectl --namespace cert-manager apply -f secret_reader.yaml
 ```
@@ -77,7 +79,7 @@ $ kubectl --namespace cert-manager apply -f my_resource.yaml
 Note that we use the `cert-manager` namespace, but it may make more sense in
 your setup to hame more nuanced namespace management.
 
-2. Create Issuer(s), we'll use `letsencrypt` for example. We'll use
+1. Create Issuer(s), we'll use `letsencrypt` for example. We'll use
 `ClusterIssuer` here, which will be available accross namespaces. You may
 prefer to use `Issuer`. This is where `NS1` API options are set (`endpoint`,
 `ignoreSSL`).
@@ -172,7 +174,7 @@ See cert-manager
 [docs](https://docs.cert-manager.io/en/latest/tasks/issuing-certificates/ingress-shim.html)
 on "ingress shims".
 
-The gist of it is adding some an annotation and a `tls` section to your Ingress
+The gist of it is adding an annotation, and a `tls` section to your Ingress
 definition. A simple ingress example is below. We use the `ingress-nginx`
 ingress controller, but it's the same idea for any ingress.
 
@@ -206,7 +208,7 @@ spec:
 If things aren't working, check the logs in the main `cert-manager` pod first,
 they are pretty communicative. Check logs from the other `cert-manager-*` pods
 and the `cert-manager-webhook-ns1` pod. If you see repeating errors in the
-`cert-manager-webhook-ns1` pod like:
+`cert-manager-webhook-ns1` pod's logs like:
 ```
 Failed to list *v1.ConfigMap: configmaps "extension-apiserver-authentication" is forbidden: User "system:serviceaccount:cert-manager:cert-manager-webhook-ns1" cannot list resource "configmaps" in API group "" in the namespace "kube-system"
 ```
