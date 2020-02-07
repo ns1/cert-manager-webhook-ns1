@@ -7,22 +7,24 @@ Tested with kubernetes v1.16.2 and v1.17.0
 
 ## Prerequisites
 
-[certmanager](https://cert-manager.io/docs/installation/kubernetes/)
+[helm](https://helm.sh/), for installing charts.
+
+Tested vith helm v2.16.1
+
+[certmanager](https://cert-manager.io/docs/installation/kubernetes/), the
+underlying framework this project plugs into.
 
 Tested with cert-manager v0.13.0
 
-[helm](https://helm.sh/) is not strictly a prerequisite, as there are other
-options for managing charts, but we use it in our examples.
-
 ## Installation
 
-1. Install the chart with helm (tested vith v2.16.1):
+1. Install the chart with helm
 
 Note: on kubernetes v17, the `extension-apiserver-authentication-reader` role
 has the needed permissions out of the box. On earlier versions, the role may
 not have sufficient permissions to manage `configmaps`. Before installing this
-chart, edit the role and verify/ensure that the role has `get`, `list`, and
-`watch` verbs set on the `configmaps` resource.
+chart, view/edit the role and verify/ensure that the role has `get`, `list`,
+and `watch` verbs set on the `configmaps` resource.
 
 ```bash
 $ helm install --namespace cert-manager --name cert-manager-webhook-ns1 ./deploy/cert-manager-webhook-ns1
