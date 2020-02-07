@@ -19,8 +19,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 # The (secure) port our app binds to
-deployment:
-  port: 443
+containerPort: 8443
 
 service:
   type: ClusterIP
