@@ -11,6 +11,9 @@ Tested with kubernetes v1.16.2 and v1.17.0
 
 Tested with cert-manager v0.13.0
 
+[helm](https://helm.sh/) is not strictly a prerequisite, as there are other
+options for managing charts, but we use it in our examples.
+
 ## Installation
 
 1. Install the chart with helm (tested vith v2.16.1):
@@ -25,13 +28,18 @@ chart, edit the role and verify/ensure that the role has `get`, `list`, and
 $ helm install --namespace cert-manager --name cert-manager-webhook-ns1 ./deploy/cert-manager-webhook-ns1
 ```
 
-2. Populate a secret with your NS1 API Key and grant permission for service
-account to get the secret. Note that it may make more sense in your setup to
-use a `ClusterRole`.
+2. Populate a secret with your NS1 API Key
 ```bash
-$ kubectl --namespace cert-manager create secret generic \
-  ns1-credentials --from-literal=apiKey='Your NS1 API Key'
+$ kubectl --namespace cert-manager create secret generic ns1-credentials --from-literal=apiKey='Your NS1 API Key'
 ```
+
+3. We need to grant permission for service account to get the secret. Copy the
+following and apply with something like:
+```bash
+$ kubectl --namespace cert-manager apply -f secret_reader.yaml
+```
+Note that it may make more sense in your setup to use a `ClusterRole` and
+`ClusterRoleBinding` here.
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -137,7 +145,7 @@ spec:
 ```
 
 2. Test things by issuing a certificate. This example requests a cert for
-`example.com` from the staging issuer:
+`example.com` from the staging issuer, default namespace should be fine:
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
@@ -158,34 +166,56 @@ down until you see a useful error message.
 
 ### Automatically creating Certificates for Ingress resources
 
-See [this](https://docs.cert-manager.io/en/latest/tasks/issuing-certificates/ingress-shim.html).
+See cert-manager
+[docs](https://docs.cert-manager.io/en/latest/tasks/issuing-certificates/ingress-shim.html)
+on "ingress shims".
 
-The gist of it is adding some annotations and a `tls` section to your ingress
-definition, e.g:
-```bash
+The gist of it is adding some an annotation and a `tls` section to your Ingress
+definition. A simple ingress example is below. We use the `ingress-nginx`
+ingress controller, but it's the same idea for any ingress.
+
+You do of course, need to set up an `A` Record in `NS1` connecting the domain
+to the external IP of the ingress controller's LoadBalancer service. In the
+example below the domain would be `my-app.example.com`.
+<pre>
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: my-ingress
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod" # sets the issuer to use
+    kubernetes.io/ingress.class: "nginx"
+    <b>cert-manager.io/cluster-issuer: "letsencrypt-prod"</b> # sets the issuer to use
 spec:
   rules:
-  - host: mp-app.example.com
+  - host: my-app.example.com
     http:
       paths:
       - backend:
           serviceName: my-app-service
           servicePort: 80
-  tls:
+  <b>tls:
   - hosts:
-    - my-app.example.com   # domain name(s) for the certificate
-    secretName: my-app-tls # where to store the secret
-```
+    - my-app.example.com</b>   # domain name(s) for the certificate
+    <b>secretName: my-app-tls</b> # where to store the secret
+</pre>
 
 ### Troubleshooting
 
-Some cert-manager docs that may be helpful:
+If things aren't working, check the logs in the main `cert-manager` pod first,
+they are pretty communicative. Check logs from the other `cert-manager-*` pods
+and the `cert-manager-webhook-ns1` pod. If you see repeating errors in the
+`cert-manager-webhook-ns1` pod like:
+```
+Failed to list *v1.ConfigMap: configmaps "extension-apiserver-authentication" is forbidden: User "system:serviceaccount:cert-manager:cert-manager-webhook-ns1" cannot list resource "configmaps" in API group "" in the namespace "kube-system"
+```
+that's the permissions issue from the note on step one of [Installation](#installation).
+
+If you've generated a `Certificate` but no `CertificateRequest` is generated,
+the main `cert-manager` pod logs should show why any action was skipped.
+
+Since this project is essentially a plugin to `cert-manager`, detailed docs
+mainly live in the `cert-manager` project. Here are some specific docs that may
+be helpful:
 
 * About [ACME](https://cert-manager.io/docs/configuration/acme/)
 * About [DNS01 Challenges](https://cert-manager.io/docs/configuration/acme/dns01/)
