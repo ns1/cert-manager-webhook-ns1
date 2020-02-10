@@ -26,8 +26,11 @@ not have sufficient permissions to manage `configmaps`. Before installing this
 chart, view/edit the role and verify/ensure that the role has `get`, `list`,
 and `watch` verbs set on the `configmaps` resource.
 
+We have a [helm repo](https://ns1.github.io/cert-manager-webhook-ns1/) set up,
+so you can use that, or you can install directly from source:
+
 ```bash
-$ helm install --namespace cert-manager --name cert-manager-webhook-ns1 ./deploy/cert-manager-webhook-ns1
+$ helm install --namespace cert-manager cert-manager-webhook-ns1 ./deploy/cert-manager-webhook-ns1
 ```
 
 2. Populate a secret with your NS1 API Key
@@ -42,6 +45,7 @@ following and apply with something like:
 ```bash
 $ kubectl --namespace cert-manager apply -f secret_reader.yaml
 ```
+
 Note that it may make more sense in your setup to use a `ClusterRole` and
 `ClusterRoleBinding` here.
 
@@ -73,9 +77,11 @@ subjects:
 ## Configuration
 
 You'll need to edit and apply some resources, with something like:
+
 ```bash
 $ kubectl --namespace cert-manager apply -f my_resource.yaml
 ```
+
 Note that we use the `cert-manager` namespace, but it may make more sense in
 your setup to hame more nuanced namespace management.
 
@@ -85,6 +91,7 @@ prefer to use `Issuer`. This is where `NS1` API options are set (`endpoint`,
 `ignoreSSL`).
 
 Staging issuer (**optional**):
+
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
@@ -117,6 +124,7 @@ spec:
 ```
 
 Production issuer:
+
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
@@ -150,6 +158,7 @@ spec:
 
 2. Test things by issuing a certificate. This example requests a cert for
 `example.com` from the staging issuer, default namespace should be fine:
+
 ```yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
@@ -175,12 +184,14 @@ See cert-manager
 on "ingress shims".
 
 The gist of it is adding an annotation, and a `tls` section to your Ingress
-definition. A simple ingress example is below. We use the `ingress-nginx`
-ingress controller, but it's the same idea for any ingress.
+definition. A simple ingress example is below with pertinent areas bolded. We
+use the `ingress-nginx` ingress controller, but it should be the same idea for
+any ingress.
 
 You do of course, need to set up an `A` Record in `NS1` connecting the domain
 to the external IP of the ingress controller's LoadBalancer service. In the
 example below the domain would be `my-app.example.com`.
+
 <pre>
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
@@ -209,9 +220,11 @@ If things aren't working, check the logs in the main `cert-manager` pod first,
 they are pretty communicative. Check logs from the other `cert-manager-*` pods
 and the `cert-manager-webhook-ns1` pod. If you see repeating errors in the
 `cert-manager-webhook-ns1` pod's logs like:
+
 ```
 Failed to list *v1.ConfigMap: configmaps "extension-apiserver-authentication" is forbidden: User "system:serviceaccount:cert-manager:cert-manager-webhook-ns1" cannot list resource "configmaps" in API group "" in the namespace "kube-system"
 ```
+
 that's the permissions issue from the note on step one of [Installation](#installation).
 
 If you've generated a `Certificate` but no `CertificateRequest` is generated,
@@ -254,6 +267,7 @@ $ scripts/fetch-test-binaries.sh
 $ TEST_ZONE_NAME=example.com. go test .
 ```
 
-### Maintaining the Docker image
+### Maintaining the Docker image and Helm repository
 
-See `Makefile` for commands to build and push the Docker image.
+See `Makefile` for commands to build and push the Docker image, and to maintain
+the Helm repo.
