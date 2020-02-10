@@ -6,8 +6,9 @@ OUT := $(shell pwd)/_out
 
 $(shell mkdir -p "$(OUT)")
 
-verify:
-	go test -v .
+.PHONY: all build tag push helm rendered-manifest.yaml
+
+all: ;
 
 build:
 	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
@@ -18,7 +19,10 @@ tag:
 push:
 	docker push "$(REPO_NAME)/$(IMAGE_NAME):$(IMAGE_TAG)"
 
-.PHONY: rendered-manifest.yaml
+helm:
+	helm package deploy/$(IMAGE_NAME)/ -d docs/
+	helm repo index docs --url https://ns1.github.io/cert-manager-webhook-ns1 --merge docs/index.yaml
+
 rendered-manifest.yaml:
 	helm template \
 		--name $(IMAGE_NAME) \
