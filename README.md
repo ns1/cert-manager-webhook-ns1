@@ -9,7 +9,7 @@ Tested with kubernetes v1.16.2 and v1.17.0
 
 [helm](https://helm.sh/), for installing charts.
 
-Tested vith helm v2.16.1 and v3.0.3
+Tested with helm v2.16.1 and v3.0.3
 
 [certmanager](https://cert-manager.io/docs/installation/kubernetes/), the
 underlying framework this project plugs into.
