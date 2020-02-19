@@ -1,5 +1,7 @@
 # NS1 Webhook for Cert Manager
 
+> This project is in [active development](https://github.com/ns1/community/blob/master/project_status/ACTIVE_DEVELOPMENT.md)
+
 This is a webhook solver for [NS1](http://ns1.com), for use with cert-manager,
 to solve ACME DNS01 challenges.
 
