@@ -273,3 +273,9 @@ $ TEST_ZONE_NAME=example.com. go test .
 
 See `Makefile` for commands to build and push the Docker image, and to maintain
 the Helm repo.
+
+## Contributions
+
+Pull Requests and issues are welcome. See the
+[NS1 Contribution Guidelines](https://github.com/ns1/community/blob/master/Contributing.md)
+for more information.
