@@ -5,7 +5,7 @@
 This is a webhook solver for [NS1](http://ns1.com), for use with cert-manager,
 to solve ACME DNS01 challenges.
 
-Tested with kubernetes v1.16.2 and v1.17.0
+Tested with kubernetes v1.15.7, v1.16.2, and v1.17.0
 
 ## Prerequisites
 
@@ -21,12 +21,6 @@ Tested with cert-manager v0.13.0
 ## Installation
 
 1. Install the chart with helm
-
-Note: on kubernetes v17, the `extension-apiserver-authentication-reader` role
-has the needed permissions out of the box. On earlier versions, the role may
-not have sufficient permissions to manage `configmaps`. Before installing this
-chart, view/edit the role and verify/ensure that the role has `get`, `list`,
-and `watch` verbs set on the `configmaps` resource.
 
 We have a [helm repo](https://ns1.github.io/cert-manager-webhook-ns1/) set up,
 so you can use that, or you can install directly from source:
@@ -217,17 +211,6 @@ spec:
 </pre>
 
 ### Troubleshooting
-
-If things aren't working, check the logs in the main `cert-manager` pod first,
-they are pretty communicative. Check logs from the other `cert-manager-*` pods
-and the `cert-manager-webhook-ns1` pod. If you see repeating errors in the
-`cert-manager-webhook-ns1` pod's logs like:
-
-```
-Failed to list *v1.ConfigMap: configmaps "extension-apiserver-authentication" is forbidden: User "system:serviceaccount:cert-manager:cert-manager-webhook-ns1" cannot list resource "configmaps" in API group "" in the namespace "kube-system"
-```
-
-that's the permissions issue from the note on step one of [Installation](#installation).
 
 If you've generated a `Certificate` but no `CertificateRequest` is generated,
 the main `cert-manager` pod logs should show why any action was skipped.

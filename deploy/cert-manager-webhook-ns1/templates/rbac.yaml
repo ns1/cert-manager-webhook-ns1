@@ -87,6 +87,17 @@ rules:
       - secrets
     verbs:
       - get
+  # K8s 1.15.8 and below has a bug noted here: https://github.com/kubernetes/kubernetes/issues/86359
+  # A fix was merged in this PR: https://github.com/kubernetes/kubernetes/pull/86363/files, and k8s version 1.15.9+ has the fix
+  # For backwards compatability, the ClusterRole is modified to allow for configmap access.
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
