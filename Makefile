@@ -10,6 +10,7 @@ $(shell mkdir -p "$(OUT)")
 
 all: ;
 
+# When Go code changes, we need to update the Docker image
 build:
 	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
 
@@ -19,6 +20,9 @@ tag:
 push:
 	docker push "$(REPO_NAME)/$(IMAGE_NAME):$(IMAGE_TAG)"
 
+
+# When helm chart changes, we need to publish to the repo (/docs/). After this,
+# need to commit the changes (including the tgz this generates)
 helm:
 	helm package deploy/$(IMAGE_NAME)/ -d docs/
 	helm repo index docs --url https://ns1.github.io/cert-manager-webhook-ns1 --merge docs/index.yaml
