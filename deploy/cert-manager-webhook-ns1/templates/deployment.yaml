@@ -71,4 +71,3 @@ spec:
       securityContext:
         {{ toYaml . | nindent 8 }}
       {{- end }}
- 

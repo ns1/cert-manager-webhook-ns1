@@ -212,6 +212,10 @@ spec:
 
 ### Troubleshooting
 
+If things aren't working, check the logs in the main `cert-manager` pod first,
+they are pretty communicative. Check logs from the other `cert-manager-*` pods
+and the `cert-manager-webhook-ns1` pod.
+
 If you've generated a `Certificate` but no `CertificateRequest` is generated,
 the main `cert-manager` pod logs should show why any action was skipped.
 
