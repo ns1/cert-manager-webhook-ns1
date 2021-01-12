@@ -21,8 +21,11 @@ push:
 	docker push "$(REPO_NAME)/$(IMAGE_NAME):$(IMAGE_TAG)"
 
 
-# When helm chart changes, we need to publish to the repo (/docs/). After this,
-# need to commit the changes (including the tgz this generates)
+# When helm chart changes, we need to publish to the repo (/docs/):
+#
+# Ensure version is updated in Chart.yaml
+# Run `make helm`
+# Check and commit the resuls, including the tar.gz
 helm:
 	helm package deploy/$(IMAGE_NAME)/ -d docs/
 	helm repo index docs --url https://ns1.github.io/cert-manager-webhook-ns1 --merge docs/index.yaml
