@@ -29,7 +29,7 @@ helm:
 
 rendered-manifest.yaml:
 	helm template \
-		--name $(IMAGE_NAME) \
+		$(IMAGE_NAME) \
 		--set image.repository=$(IMAGE_NAME) \
 		--set image.tag=$(IMAGE_TAG) \
 		deploy/$(IMAGE_NAME) > "$(OUT)/rendered-manifest.yaml"
