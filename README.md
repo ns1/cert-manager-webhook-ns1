@@ -1,6 +1,6 @@
 # NS1 Webhook for Cert Manager
 
-> This project is in [active development](https://github.com/ns1/community/blob/master/project_status/ACTIVE_DEVELOPMENT.md)
+> This project is in [MAINTENANCE](https://github.com/ns1/community/blob/master/project_status/MAINTENANCE.md) mode
 
 This is a webhook solver for [NS1](http://ns1.com), for use with cert-manager,
 to solve ACME DNS01 challenges.
@@ -16,7 +16,7 @@ Tested with helm v2.16.1 and v3.0.3
 [certmanager](https://cert-manager.io/docs/installation/kubernetes/), the
 underlying framework this project plugs into.
 
-Tested with cert-manager v0.13.0
+Tested with cert-manager v0.13.0 and v1.0.3
 
 ## Installation
 
@@ -89,7 +89,7 @@ prefer to use `Issuer`. This is where `NS1` API options are set (`endpoint`,
 Staging issuer (**optional**):
 
 ```yaml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-staging
@@ -122,7 +122,7 @@ spec:
 Production issuer:
 
 ```yaml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
@@ -156,7 +156,7 @@ spec:
 `example.com` from the staging issuer, default namespace should be fine:
 
 ```yaml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: example.com
@@ -248,7 +248,7 @@ for the test zone.
 $ scripts/fetch-test-binaries.sh
 ```
 
-2. See the `README` in `test_data/` and copy/edit the files as needed.
+2. See the `README` in `testdata/ns1` and copy/edit the files as needed.
 
 3. Run the tests with `TEST_ZONE_NAME` set to your live, NS1-controlled zone:
 

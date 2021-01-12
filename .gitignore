@@ -15,3 +15,7 @@
 ./cert-manager-webhook-ns1
 
 _out
+
+# ignore our "real" test data
+testdata/ns1/api-key.yaml
+testdata/ns1/config.json
