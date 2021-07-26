@@ -1,6 +1,6 @@
 module github.com/ns1/cert-manager-webhook-ns1
 
-go 1.13
+go 1.16
 
 require (
 	github.com/jetstack/cert-manager v0.13.0
