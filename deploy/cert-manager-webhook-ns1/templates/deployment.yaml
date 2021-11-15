@@ -23,6 +23,9 @@ spec:
       {{- if ne .Values.priorityClassName "" }}
       priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
+      {{- if ne .Values.hostNetwork false }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

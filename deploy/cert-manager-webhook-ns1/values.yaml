@@ -46,3 +46,5 @@ tolerations: []
 affinity: {}
 
 priorityClassName: ""
+
+hostNetwork: false
