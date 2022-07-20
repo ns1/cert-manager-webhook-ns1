@@ -10,8 +10,8 @@ groupName: acme.nsone.net
 # This is useful when you have a split DNS service that might return
 # SOA records internally that don't exist in NSOne.
 nameservers:
-  #- 8.8.8.8
-  #- 1.1.1.1
+  #- 8.8.8.8:53
+  #- 1.1.1.1:53
 
 certManager:
   namespace: cert-manager
