@@ -34,6 +34,10 @@ spec:
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
+            {{- if .Values.nameservers }}
+            - name: NAMESERVERS
+              value: {{ join "," .Values.nameservers }}
+            {{- end }}
           ports:
             - name: https
               containerPort: {{ .Values.containerPort }}

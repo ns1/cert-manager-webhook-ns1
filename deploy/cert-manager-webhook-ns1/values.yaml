@@ -6,6 +6,13 @@
 # Users should not generally need to edit the groupName.
 groupName: acme.nsone.net
 
+# Nameservers is used to force the webhook to use specific name servers.
+# This is useful when you have a split DNS service that might return
+# SOA records internally that don't exist in NSOne.
+nameservers:
+  #- 8.8.8.8
+  #- 1.1.1.1
+
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
