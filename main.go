@@ -31,7 +31,7 @@ func main() {
 		panic("GROUP_NAME must be specified")
 	}
 
-	if os.Getenv("RECURSIVE_NAMESERVERS") != "" {
+	if os.Getenv("NAMESERVERS") != "" {
 		nameservers = strings.Split(os.Getenv("NAMESERVERS"), ",")
 	} else {
 		nameservers = util.RecursiveNameservers
