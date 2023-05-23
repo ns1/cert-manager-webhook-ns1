@@ -1,5 +1,5 @@
 IMAGE_NAME := cert-manager-webhook-ns1
-IMAGE_TAG := v0.4.3
+IMAGE_TAG := latest
 REPO_NAME := ns1inc
 
 OUT := $(shell pwd)/_out
