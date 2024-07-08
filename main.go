@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -24,6 +25,7 @@ import (
 )
 
 var groupName = os.Getenv("GROUP_NAME")
+var txtRecordExists = errors.New("TXT record exists with different challenge data")
 
 func main() {
 	if groupName == "" {
@@ -98,12 +100,35 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 	_, err = c.ns1Client.Records.Create(record)
 	if err != nil {
-	  if err != ns1API.ErrRecordExists {
-			return err
+		if err != ns1API.ErrRecordExists {
+			return fmt.Errorf("error creating record: %w", err)
+		}
+		ok, checkErr := c.checkChallengeData(zone, record.Domain, ch.Key)
+		if checkErr != nil {
+			return fmt.Errorf("checkChallengeData: %w", checkErr)
+		}
+		if !ok {
+			return txtRecordExists
 		}
 	}
 
 	return nil
+}
+
+// checkChallengeData checks if a TXT record exists with the given content.
+func (c *ns1DNSProviderSolver) checkChallengeData(zone, fqdn, content string) (bool, error) {
+	record, _, err := c.ns1Client.Records.Get(zone, fqdn, "TXT")
+	if err != nil {
+		return false, err
+	}
+	for _, ans := range record.Answers {
+		for _, data := range ans.Rdata {
+			if data == content {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -233,7 +258,7 @@ func (c *ns1DNSProviderSolver) parseChallenge(ch *v1alpha1.ChallengeRequest) (
 	}
 	zone = util.UnFqdn(zone)
 
-	if idx := strings.Index(ch.ResolvedFQDN, "." + ch.ResolvedZone); idx != -1 {
+	if idx := strings.Index(ch.ResolvedFQDN, "."+ch.ResolvedZone); idx != -1 {
 		domain = ch.ResolvedFQDN[:idx]
 	} else {
 		domain = util.UnFqdn(ch.ResolvedFQDN)
