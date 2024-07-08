@@ -21,6 +21,7 @@ func TestRunsSuite(t *testing.T) {
 		dns.SetAllowAmbientCredentials(false),
 		dns.SetManifestPath("testdata/ns1"),
 		dns.SetBinariesPath("_out/kubebuilder/bin"),
+		dns.SetDNSServer("dns1.p02.nsone.net:53"),
 	)
 
 	fixture.RunConformance(t)
