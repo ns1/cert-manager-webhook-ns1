@@ -105,7 +105,7 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		}
 		ok, checkErr := c.checkChallengeData(zone, record.Domain, ch.Key)
 		if checkErr != nil {
-			return fmt.Errorf("checkRecordExists: %w", checkErr)
+			return fmt.Errorf("checkChallengeData: %w", checkErr)
 		}
 		if !ok {
 			return txtRecordExists
