@@ -253,7 +253,7 @@ $ scripts/fetch-test-binaries.sh
 3. Run the tests with `TEST_ZONE_NAME` set to your live, NS1-controlled zone:
 
 ```bash
-$ TEST_ZONE_NAME=example.com. go test .
+$ TEST_ZONE_NAME=example.com. make test
 ```
 
 ### Maintaining the Docker image and Helm repository

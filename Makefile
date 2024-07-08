@@ -20,6 +20,12 @@ tag:
 push:
 	docker push "$(REPO_NAME)/$(IMAGE_NAME):$(IMAGE_TAG)"
 
+test:
+	TEST_ASSET_ETCD=_out/kubebuilder/bin/etcd \
+	TEST_ASSET_KUBE_APISERVER=_out/kubebuilder/bin/kube-apiserver \
+	TEST_ASSET_KUBECTL=_out/kubebuilder/bin/kubectl \
+	go test -v .
+
 
 # When helm chart changes, we need to publish to the repo (/docs/):
 #
