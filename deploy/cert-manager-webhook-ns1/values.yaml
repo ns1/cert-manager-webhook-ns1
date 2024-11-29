@@ -11,7 +11,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: ns1inc/cert-manager-webhook-ns1
+  repository: icr.io/ns1pub/cert-manager-webhook-ns1
   tag: latest
   pullPolicy: Always
 
