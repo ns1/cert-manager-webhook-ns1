@@ -1,0 +1,37 @@
+name: tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+
+      - name: Configure Secret Manifest
+        env:
+            NS1_KEY: ${{ secrets.GH_NS1_KEY }}
+        run: |
+          yq '.data.apiKey = strenv(NS1_KEY)' testdata/ns1/api-key.yaml.sample
+          mv testdata/ns1/api-key.yaml.sample testdata/ns1/api-key.yaml
+
+      - name: Update config name
+        run: |
+          mv testdata/ns1/config.json.sample testdata/ns1/config.json
+
+      - name: Install Dependencies
+        run: |
+          scripts/fetch-test-binaries.sh
+
+      - name: Run Tests
+        env:
+            NS1_ZONE: ${{ secrets.GH_NS1_ZONE }}
+        run: |
+          echo hello
+          TEST_ZONE_NAME=${NS1_ZONE} go test .
