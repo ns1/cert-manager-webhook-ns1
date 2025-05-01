@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -8,14 +9,14 @@ import (
 	"os"
 	"strings"
 
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
-	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
+	"github.com/cert-manager/cert-manager/pkg/issuer/acme/dns/util"
 
 	ns1API "gopkg.in/ns1/ns1-go.v2/rest"
 	ns1DNS "gopkg.in/ns1/ns1-go.v2/rest/model/dns"
@@ -98,7 +99,7 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 	_, err = c.ns1Client.Records.Create(record)
 	if err != nil {
-	  if err != ns1API.ErrRecordExists {
+		if err != ns1API.ErrRecordExists {
 			return err
 		}
 	}
@@ -189,6 +190,7 @@ func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg n
 	}
 
 	secret, err := c.k8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(
+		context.TODO(),
 		ref.Name, metav1.GetOptions{},
 	)
 	if err != nil {
@@ -227,13 +229,14 @@ func (c *ns1DNSProviderSolver) parseChallenge(ch *v1alpha1.ChallengeRequest) (
 ) {
 
 	if zone, err = util.FindZoneByFqdn(
+		context.TODO(),
 		ch.ResolvedFQDN, util.RecursiveNameservers,
 	); err != nil {
 		return "", "", err
 	}
 	zone = util.UnFqdn(zone)
 
-	if idx := strings.Index(ch.ResolvedFQDN, "." + ch.ResolvedZone); idx != -1 {
+	if idx := strings.Index(ch.ResolvedFQDN, "."+ch.ResolvedZone); idx != -1 {
 		domain = ch.ResolvedFQDN[:idx]
 	} else {
 		domain = util.UnFqdn(ch.ResolvedFQDN)
