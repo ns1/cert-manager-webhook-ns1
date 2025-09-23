@@ -1,0 +1,57 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directories:
+      - "/"
+    groups:
+      minor-update:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+      major-update:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "skip changelog"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    groups:
+      minor-update:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+      major-update:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "skip changelog"
+  - package-ecosystem: "docker"
+    directory: "/"
+    groups:
+      minor-update:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+      major-update:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+    labels:
+      - "skip changelog"
+    schedule:
+      interval: "weekly"
