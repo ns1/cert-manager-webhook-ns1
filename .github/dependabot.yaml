@@ -18,7 +18,7 @@ updates:
     schedule:
       interval: "weekly"
     labels:
-      - "skip changelog"
+      - "dependencies"
   - package-ecosystem: "github-actions"
     directory: "/"
     groups:
@@ -36,7 +36,7 @@ updates:
     schedule:
       interval: "weekly"
     labels:
-      - "skip changelog"
+      - "dependencies"
   - package-ecosystem: "docker"
     directory: "/"
     groups:
@@ -52,6 +52,6 @@ updates:
         update-types:
           - "major"
     labels:
-      - "skip changelog"
+      - "dependencies"
     schedule:
       interval: "weekly"
