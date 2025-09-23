@@ -1,8 +1,8 @@
 version: 2
+open-pull-requests-limit: 10
 updates:
   - package-ecosystem: "gomod"
-    directories:
-      - "/"
+    directory: "/"
     groups:
       minor-update:
         patterns:
@@ -55,3 +55,21 @@ updates:
       - "dependencies"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "helm"
+    directory: "/deploy/cert-manager-webhook-ns1"
+    groups:
+      minor-update:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+      major-update:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
