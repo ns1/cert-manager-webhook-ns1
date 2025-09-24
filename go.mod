@@ -3,7 +3,7 @@ module github.com/ns1/cert-manager-webhook-ns1
 go 1.23.0
 
 require (
-	github.com/cert-manager/cert-manager v1.15.1
+	github.com/cert-manager/cert-manager v1.15.4
 	gopkg.in/ns1/ns1-go.v2 v2.6.2
 	k8s.io/apiextensions-apiserver v0.30.1
 	k8s.io/apimachinery v0.30.1
