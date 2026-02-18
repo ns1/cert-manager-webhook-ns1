@@ -6,8 +6,8 @@ require (
 	github.com/jetstack/cert-manager v0.13.0
 	gopkg.in/ns1/ns1-go.v2 v2.6.2
 	k8s.io/apiextensions-apiserver v0.17.0
-	k8s.io/apimachinery v0.17.0
-	k8s.io/client-go v0.17.0
+	k8s.io/apimachinery v0.17.16
+	k8s.io/client-go v0.17.16
 )
 
 require (
@@ -20,7 +20,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
-	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
+	github.com/evanphx/json-patch v4.9.0+incompatible // indirect
 	github.com/go-openapi/jsonpointer v0.19.3 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-openapi/spec v0.19.3 // indirect
@@ -67,14 +67,15 @@ require (
 	google.golang.org/grpc v1.23.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/yaml.v2 v2.2.4 // indirect
-	k8s.io/api v0.17.0 // indirect
+	gopkg.in/yaml.v2 v2.2.8 // indirect
+	k8s.io/api v0.17.16 // indirect
 	k8s.io/apiserver v0.17.0 // indirect
 	k8s.io/component-base v0.17.0 // indirect
 	k8s.io/klog v1.0.0 // indirect
-	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a // indirect
+	k8s.io/kube-openapi v0.0.0-20200410145947-bcb3869e6f29 // indirect
 	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f // indirect
 	sigs.k8s.io/structured-merge-diff v1.0.1-0.20191108220359-b1b620dd3f06 // indirect
+	sigs.k8s.io/structured-merge-diff/v2 v2.0.1 // indirect
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
