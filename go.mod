@@ -6,8 +6,8 @@ require (
 	github.com/jetstack/cert-manager v0.13.0
 	gopkg.in/ns1/ns1-go.v2 v2.6.2
 	k8s.io/apiextensions-apiserver v0.17.0
-	k8s.io/apimachinery v0.17.0
-	k8s.io/client-go v0.17.0
+	k8s.io/apimachinery v0.17.3
+	k8s.io/client-go v0.17.3
 )
 
 require (
@@ -67,10 +67,10 @@ require (
 	google.golang.org/grpc v1.23.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/yaml.v2 v2.2.4 // indirect
-	k8s.io/api v0.17.0 // indirect
-	k8s.io/apiserver v0.17.0 // indirect
-	k8s.io/component-base v0.17.0 // indirect
+	gopkg.in/yaml.v2 v2.2.8 // indirect
+	k8s.io/api v0.17.3 // indirect
+	k8s.io/apiserver v0.17.3 // indirect
+	k8s.io/component-base v0.17.3 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a // indirect
 	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f // indirect
