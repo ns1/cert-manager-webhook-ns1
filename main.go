@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -98,7 +99,7 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 	_, err = c.ns1Client.Records.Create(record)
 	if err != nil {
-	  if err != ns1API.ErrRecordExists {
+		if err != ns1API.ErrRecordExists {
 			return err
 		}
 	}
@@ -189,7 +190,7 @@ func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg n
 	}
 
 	secret, err := c.k8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(
-		ref.Name, metav1.GetOptions{},
+		context.Background(), ref.Name, metav1.GetOptions{},
 	)
 	if err != nil {
 		return err
@@ -233,7 +234,7 @@ func (c *ns1DNSProviderSolver) parseChallenge(ch *v1alpha1.ChallengeRequest) (
 	}
 	zone = util.UnFqdn(zone)
 
-	if idx := strings.Index(ch.ResolvedFQDN, "." + ch.ResolvedZone); idx != -1 {
+	if idx := strings.Index(ch.ResolvedFQDN, "."+ch.ResolvedZone); idx != -1 {
 		domain = ch.ResolvedFQDN[:idx]
 	} else {
 		domain = util.UnFqdn(ch.ResolvedFQDN)
