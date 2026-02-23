@@ -16,7 +16,7 @@ Tested with helm v2.16.1 and v3.0.3
 [certmanager](https://cert-manager.io/docs/installation/kubernetes/), the
 underlying framework this project plugs into.
 
-Tested with cert-manager v0.13.0 and v1.0.3
+Tested with cert-manager v1.19.3
 
 ## Installation
 
