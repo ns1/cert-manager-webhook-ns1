@@ -242,18 +242,12 @@ The tests are "live" and require a functioning, DNS-accessible zone, as well as
 credentials for the NS1 API. The tests will create (and remove) a TXT record
 for the test zone.
 
-1. Prepare testing environment by running the `fetch-test-binaries` script:
+1. See the `README` in `testdata/ns1` and copy/edit the files as needed.
+
+2. Run the tests with `TEST_ZONE_NAME` set to your live, NS1-controlled zone:
 
 ```bash
-$ scripts/fetch-test-binaries.sh
-```
-
-2. See the `README` in `testdata/ns1` and copy/edit the files as needed.
-
-3. Run the tests with `TEST_ZONE_NAME` set to your live, NS1-controlled zone:
-
-```bash
-$ TEST_ZONE_NAME=example.com. go test .
+$ TEST_ZONE_NAME=example.com. make test
 ```
 
 ### Maintaining the Docker image and Helm repository
