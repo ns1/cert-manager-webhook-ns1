@@ -18,6 +18,9 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
+# -- Name of secret to use to pull images
+imagePullSecrets: []
+
 # The (secure) port our app binds to
 containerPort: 8443
 
