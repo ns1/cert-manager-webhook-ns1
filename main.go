@@ -9,16 +9,16 @@ import (
 	"os"
 	"strings"
 
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
-	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
+	"github.com/cert-manager/cert-manager/pkg/issuer/acme/dns/util"
 
-	ns1API "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	ns1DNS "gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +43,7 @@ func main() {
 // `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver` interface.
 type ns1DNSProviderSolver struct {
 	k8sClient *kubernetes.Clientset
-	ns1Client *ns1API.Client
+	ns1Client *ns1.Client
 }
 
 // ns1DNSProviderConfig is a structure that is used to decode into when
@@ -93,13 +93,13 @@ func (c *ns1DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 	// Create a TXT Record for domain.zone with answer set to DNS challenge key
 	// Short TTL is fine, as we delete the record after the challenge is solved.
-	record := ns1DNS.NewRecord(zone, domain, "TXT")
-	record.TTL = 600
+	record := ns1DNS.NewRecord(zone, domain, "TXT", nil, nil)
 	record.AddAnswer(ns1DNS.NewTXTAnswer(ch.Key))
+	record.TTL = 600
 
 	_, err = c.ns1Client.Records.Create(record)
 	if err != nil {
-		if err != ns1API.ErrRecordExists {
+		if err != ns1.ErrRecordExists {
 			return err
 		}
 	}
@@ -130,10 +130,11 @@ func (c *ns1DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		}
 	}
 
-	// Delete the TXT Record we created in Present
+	// Delete the TXT Record we created in the Present step
 	if _, err = c.ns1Client.Records.Delete(
 		zone, fmt.Sprintf("%s.%s", domain, zone), "TXT",
-	); err != nil {
+	); err != ns1.ErrRecordMissing {
+		// we return not found if the record doesn't exist, this is expected so we can ignore this error
 		return err
 	}
 
@@ -190,11 +191,12 @@ func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg n
 	}
 
 	secret, err := c.k8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(
-		context.Background(), ref.Name, metav1.GetOptions{},
+		context.TODO(), ref.Name, metav1.GetOptions{},
 	)
 	if err != nil {
 		return err
 	}
+
 	apiKeyBytes, ok := secret.Data[ref.Key]
 	if !ok {
 		return fmt.Errorf(
@@ -204,7 +206,7 @@ func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg n
 			ref.Name,
 		)
 	}
-	apiKey := string(apiKeyBytes)
+	apiKey := strings.TrimSpace(string(apiKeyBytes))
 
 	httpClient := &http.Client{}
 	if cfg.IgnoreSSL == true {
@@ -213,10 +215,11 @@ func (c *ns1DNSProviderSolver) setNS1Client(ch *v1alpha1.ChallengeRequest, cfg n
 		}
 		httpClient.Transport = tr
 	}
-	c.ns1Client = ns1API.NewClient(
+
+	c.ns1Client = ns1.NewClient(
 		httpClient,
-		ns1API.SetAPIKey(apiKey),
-		ns1API.SetEndpoint(cfg.Endpoint),
+		ns1.SetAPIKey(apiKey),
+		ns1.SetEndpoint(cfg.Endpoint),
 	)
 
 	return nil
@@ -227,7 +230,7 @@ func (c *ns1DNSProviderSolver) parseChallenge(ch *v1alpha1.ChallengeRequest) (
 	zone string, domain string, err error,
 ) {
 
-	if zone, err = util.FindZoneByFqdn(
+	if zone, err = util.FindZoneByFqdn(context.TODO(),
 		ch.ResolvedFQDN, util.RecursiveNameservers,
 	); err != nil {
 		return "", "", err
